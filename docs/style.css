@@ -317,3 +317,12 @@ input:disabled { opacity: 0.5; cursor: not-allowed; }
   font-weight: 600;
 }
 .boton-enlace:hover { filter: brightness(1.15); }
+
+.enlace-guia {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.76rem;
+  color: var(--acento-verde);
+  text-decoration: none;
+}
+.enlace-guia:hover { text-decoration: underline; }
