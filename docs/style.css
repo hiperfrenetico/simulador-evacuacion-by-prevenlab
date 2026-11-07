@@ -1,0 +1,319 @@
+/* ============================================================
+   Simulador de Evacuación 3D — Hoja de estilos del MVP
+   Distribución: panel lateral de parámetros + visor 3D con HUD.
+   ============================================================ */
+
+:root {
+  --panel-fondo: #1c2431;
+  --panel-borde: #2e3a4e;
+  --texto-claro: #e8edf4;
+  --texto-suave: #9db0c8;
+  --acento: #ff8c42;        /* naranja seguridad */
+  --acento-verde: #37c871;  /* salidas / OK */
+  --acento-rojo: #ff5566;   /* incumplimiento */
+  --fondo-visor: #0e131b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--fondo-visor);
+  color: var(--texto-claro);
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ---------------- Panel lateral ---------------- */
+
+#panel {
+  width: 330px;
+  min-width: 330px;
+  background: var(--panel-fondo);
+  border-right: 1px solid var(--panel-borde);
+  padding: 18px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#panel-titulo h1 {
+  font-size: 1.15rem;
+  color: var(--acento);
+  line-height: 1.25;
+}
+
+.subtitulo {
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  margin-top: 4px;
+}
+
+.bloque {
+  border: 1px solid var(--panel-borde);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bloque h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--acento);
+}
+
+label {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+}
+
+input[type="number"], select, input[type="file"] {
+  width: 100%;
+  background: #121924;
+  color: var(--texto-claro);
+  border: 1px solid var(--panel-borde);
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 0.9rem;
+}
+
+input[type="file"] { padding: 6px; font-size: 0.78rem; }
+
+.dato {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+
+.dato strong { color: var(--texto-claro); }
+
+.dato.aviso {
+  display: block;
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 0.8rem;
+}
+
+.dato.aviso.ok    { background: rgba(55, 200, 113, 0.12); color: var(--acento-verde); }
+.dato.aviso.error { background: rgba(255, 85, 102, 0.12); color: var(--acento-rojo); }
+
+.dato-plano {
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.ayuda {
+  font-size: 0.76rem;
+  color: var(--texto-suave);
+  line-height: 1.45;
+}
+
+.ayuda code {
+  background: #121924;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--acento-verde);
+}
+
+.fila-botones { display: flex; gap: 8px; }
+
+button {
+  flex: 1;
+  background: var(--acento);
+  color: #1a1208;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+button:hover { filter: brightness(1.12); }
+button:disabled { filter: grayscale(0.8) brightness(0.7); cursor: not-allowed; }
+
+button.secundario {
+  background: #2c3a50;
+  color: var(--texto-claro);
+  font-weight: 500;
+}
+
+button.secundario.activo {
+  background: var(--acento-verde);
+  color: #08240f;
+  font-weight: 700;
+}
+
+.oculto { display: none !important; }
+
+#pie {
+  margin-top: auto;
+  font-size: 0.68rem;
+  color: #5f7291;
+  line-height: 1.5;
+  border-top: 1px solid var(--panel-borde);
+  padding-top: 10px;
+}
+
+/* ---------------- Visor 3D + HUD ---------------- */
+
+#visor {
+  flex: 1;
+  position: relative;
+}
+
+#contenedor3d {
+  position: absolute;
+  inset: 0;
+}
+
+#contenedor3d canvas { display: block; }
+
+#hud {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 10px;
+  background: rgba(14, 19, 27, 0.82);
+  border: 1px solid var(--panel-borde);
+  border-radius: 10px;
+  padding: 10px 14px;
+  backdrop-filter: blur(4px);
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 84px;
+}
+
+.hud-etiqueta {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--texto-suave);
+}
+
+.hud-valor {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--texto-claro);
+  font-variant-numeric: tabular-nums;
+}
+
+#hud-estado { font-size: 0.95rem; }
+
+.hud-item-chica { min-width: 60px; }
+.hud-item-chica .hud-valor { font-size: 0.95rem; }
+
+.estado-corriendo  { color: var(--acento) !important; }
+.estado-completado { color: var(--acento-verde) !important; }
+
+#panel-segu {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  max-width: min(480px, calc(100% - 28px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(14, 19, 27, 0.88);
+  border: 1px solid #ff8c42;
+  border-radius: 10px;
+  padding: 8px 12px;
+  backdrop-filter: blur(4px);
+}
+#segu-estado {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ff8c42;
+}
+#segu-mensaje {
+  font-size: 0.82rem;
+  color: var(--texto-claro);
+  line-height: 1.35;
+}
+.estado-alerta     { color: var(--acento-rojo) !important; }
+
+/* ---------- Herramientas de edición del plano (v0.3) ---------- */
+.subtitulo-bloque {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--texto-claro);
+  margin-top: 4px;
+}
+
+.herramientas button { padding: 8px 6px; font-size: 0.8rem; }
+
+.aviso-edicion {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: #ffd2a8;
+  background: rgba(255, 140, 66, 0.12);
+  border-left: 3px solid var(--acento);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+#detalle-dwg {
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  border: 1px dashed var(--panel-borde);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+#detalle-dwg summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--texto-claro);
+}
+#detalle-dwg input[type="file"] { margin-top: 6px; }
+
+.fila-dimensiones {
+  display: flex;
+  gap: 10px;
+}
+.fila-dimensiones > div { flex: 1; }
+.fila-dimensiones label { font-size: 0.76rem; }
+
+.aviso-beta {
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #ffd2a8;
+  background: rgba(255, 140, 66, 0.12);
+  border-left: 3px solid var(--acento);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-top: 8px;
+}
+.boton-enlace {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  background: #2c3a50;
+  color: var(--texto-claro);
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.boton-enlace:hover { filter: brightness(1.15); }

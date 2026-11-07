@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Evacuación 3D — Ley 19.587 / Dec. 351/79</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="style.css?v=0.6.0">
+  <!--
+    Three.js se carga vía CDN como módulo ES (import map).
+    Requiere conexión a internet la primera vez (luego queda en caché del navegador).
+  -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+        "dxf-parser": "https://esm.sh/dxf-parser@1.1.2"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- ================= PANEL DE CONTROL (parámetros normativos) ================= -->
+    <aside id="panel">
+      <header id="panel-titulo">
+        <h1>Simulador de Evacuación 3D</h1>
+        <p class="subtitulo">Medios de escape — Ley 19.587 · Dec. 351/79 (Cap. 18)</p>
+        <p id="aviso-beta" class="aviso-beta oculto">🧪 <strong>Versión beta abierta.</strong> Herramienta orientativa en prueba: puede tener errores. Tus comentarios nos ayudan a mejorarla.</p>
+      </header>
+
+      <section class="bloque">
+        <h2>1 · Sector de incendio</h2>
+
+        <label for="in-superficie">Superficie del sector (m²)</label>
+        <input type="number" id="in-superficie" min="10" max="10000" step="10" value="200">
+
+        <div class="fila-dimensiones">
+          <div>
+            <label for="in-ancho-edificio">Ancho (m)</label>
+            <input type="number" id="in-ancho-edificio" min="2" max="300" step="0.5" value="14.1">
+          </div>
+          <div>
+            <label for="in-profundidad-edificio">Profundidad (m)</label>
+            <input type="number" id="in-profundidad-edificio" min="2" max="300" step="0.5" value="14.1">
+          </div>
+        </div>
+        <p class="ayuda">
+          El recinto genérico es un rectángulo: cambiar el ancho/profundidad
+          actualiza la superficie (y viceversa, manteniendo la forma). Por
+          ejemplo, para un local de 10 × 20 m poné esos valores acá.
+        </p>
+
+        <label for="sel-entrenamiento">Nivel de entrenamiento de los ocupantes</label>
+        <select id="sel-entrenamiento" title="Cambia cómo se comportan los ocupantes durante la evacuación">
+          <option value="ninguno">Sin entrenamiento (pánico: corren, se amontonan)</option>
+          <option value="basico" selected>Entrenado — nivel básico</option>
+          <option value="avanzado">Entrenado — nivel avanzado</option>
+        </select>
+        <p class="ayuda">
+          <strong>Sin entrenamiento:</strong> corren, casi no ceden el paso y
+          casi todos van a la salida más cercana sin importar la cola — se
+          amontonan y el flujo real cae (el efecto "más rápido es más
+          lento"). <strong>Básico:</strong> comportamiento calibrado por
+          defecto. <strong>Avanzado:</strong> más ordenados, respetan más el
+          espacio del resto y reparten mejor entre las salidas según la cola.
+          SEGU siempre se comporta como avanzado.
+        </p>
+
+        <label for="sel-factor">Factor de ocupación (m²/persona)</label>
+        <select id="sel-factor" title="Valores del cuadro de factores de ocupación — Dec. 351/79">
+          <option value="1">x = 1 — Salas de baile / asambleas / auditorios</option>
+          <option value="2">x = 2 — Edificios educacionales / templos</option>
+          <option value="3" selected>x = 3 — Comercio / trabajo / restaurantes / ferias</option>
+          <option value="5">x = 5 — Gimnasios / billares / pistas de patinaje</option>
+          <option value="8">x = 8 — Oficinas / bancos / bibliotecas / clínicas</option>
+          <option value="12">x = 12 — Viviendas privadas y colectivas</option>
+          <option value="16">x = 16 — Edificios industriales</option>
+          <option value="custom">Otro valor…</option>
+        </select>
+        <input type="number" id="in-factor-custom" min="0.5" max="50" step="0.5" value="3"
+               class="oculto" title="Factor de ocupación personalizado (m²/persona)">
+
+        <div class="dato">
+          <span>Ocupantes máx. (N = Sup / x):</span>
+          <strong id="out-ocupantes">—</strong>
+        </div>
+      </section>
+
+      <section class="bloque">
+        <h2>2 · Medios de escape</h2>
+
+        <label for="in-uas">U.A.S. provistas en la salida (1 U.A.S. = 0,55 m)</label>
+        <input type="number" id="in-uas" min="1" max="12" step="1" value="2">
+        <p class="ayuda oculto" id="ayuda-uas">
+          Con un plano de archivo (DXF o escenario cargado) las U.A.S. provistas
+          salen de las salidas del plano. La superficie que pongas arriba ya no
+          cambia el tamaño del plano (es fijo, del archivo) — solo la cantidad de
+          ocupantes a simular.
+        </p>
+
+        <div class="dato">
+          <span>Ancho libre de salida:</span>
+          <strong id="out-ancho-salida">—</strong>
+        </div>
+        <div class="dato">
+          <span>U.A.S. requeridas (n = N/100, mín. 2):</span>
+          <strong id="out-uas-req">—</strong>
+        </div>
+        <div id="out-cumplimiento" class="dato aviso oculto"></div>
+      </section>
+
+      <section class="bloque">
+        <h2>3 · Plano</h2>
+        <p class="ayuda">
+          Por defecto se usa un <strong>recinto cuadrado genérico</strong>, editable
+          (ver abajo) y que se ajusta solo a la superficie ingresada. Podés cargar un
+          plano real en <strong>DXF</strong> o un escenario guardado (<code>.json</code>).
+          Capas que se detectan solas: <code>SALIDAS</code> (vanos) y
+          <code>MOBILIARIO</code> / <code>ESTANTERIAS</code> / <code>EQUIPOS</code> /
+          <code>OBSTACULOS</code> (objetos a rodear).
+        </p>
+        <input type="file" id="in-dxf" accept=".dxf,.json">
+        <div class="fila-botones">
+          <button id="btn-ejemplo" class="secundario" type="button">Cargar plano de ejemplo</button>
+          <button id="btn-demo" class="secundario" type="button">Volver al recinto genérico</button>
+        </div>
+
+        <details id="detalle-dwg">
+          <summary>🧪 Importar DWG (prueba beta)</summary>
+          <p class="ayuda">
+            Todavía no es confiable: depende de un conversor instalado en esta PC y
+            puede fallar según la versión del DWG. Si tenés el plano en tu programa
+            CAD, exportalo como <strong>DXF</strong> (sección de arriba) — anda mejor.
+            Más adelante vamos a mejorar esta parte, quizás con soporte para PDF.
+          </p>
+          <p class="ayuda" id="out-dwg"></p>
+          <input type="file" id="in-dwg" accept=".dwg">
+        </details>
+
+        <p class="subtitulo-bloque">Editar el plano</p>
+        <div class="fila-botones herramientas">
+          <button class="secundario" type="button" data-herramienta="salida"
+                  title="Clic sobre un muro para abrir una salida">🚪 Agregar salida</button>
+          <button class="secundario" type="button" data-herramienta="obstaculo"
+                  title="Arrastrar sobre el piso para dibujar un obstáculo">📦 Obstáculo</button>
+          <button class="secundario" type="button" data-herramienta="borrar"
+                  title="Clic sobre una salida u obstáculo para quitarlo">✕ Borrar</button>
+        </div>
+        <p class="ayuda" id="ayuda-herramienta"></p>
+        <label for="in-uas-nueva">Ancho de cada salida nueva (U.A.S.)</label>
+        <input type="number" id="in-uas-nueva" min="1" max="12" step="1" value="2">
+        <div id="aviso-edicion" class="aviso-edicion oculto"></div>
+        <div class="fila-botones">
+          <button id="btn-deshacer" class="secundario" type="button" disabled
+                  title="Ctrl+Z">↶ Deshacer</button>
+          <button id="btn-restaurar" class="secundario" type="button" disabled
+                  title="Vuelve al plano tal como se cargó">⟲ Plano original</button>
+        </div>
+        <button id="btn-guardar" class="secundario" type="button"
+                title="Descarga el plano editado y los parámetros (.json)">💾 Guardar escenario</button>
+        <div id="out-plano" class="dato-plano"></div>
+      </section>
+
+      <section class="bloque">
+        <h2>4 · Simulación</h2>
+        <div class="fila-botones">
+          <button id="btn-iniciar" type="button">▶ Iniciar evacuación</button>
+          <button id="btn-reiniciar" class="secundario" type="button">↺ Reiniciar</button>
+        </div>
+      </section>
+
+      <a id="enlace-comentarios" class="boton-enlace oculto" href="#" target="_blank" rel="noopener">💬 Comentarios y sugerencias</a>
+
+      <footer id="pie">
+        Simulador de Evacuación 3D · Versión 0.6.0 · Última actualización: 06/11/2026<br>
+        Modelo ABM simplificado (fuerza social). Uso orientativo: no reemplaza el
+        cálculo profesional de medios de escape.
+      </footer>
+    </aside>
+
+    <!-- ================= VISOR 3D + HUD ================= -->
+    <main id="visor">
+      <div id="contenedor3d"></div>
+
+      <div id="hud">
+        <div class="hud-item">
+          <span class="hud-etiqueta">Tiempo</span>
+          <span class="hud-valor" id="hud-tiempo">0,0 s</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-etiqueta">Evacuados</span>
+          <span class="hud-valor" id="hud-evacuados">0 / 0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-etiqueta">Restantes</span>
+          <span class="hud-valor" id="hud-restantes">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-etiqueta">Estado</span>
+          <span class="hud-valor" id="hud-estado">Listo</span>
+        </div>
+        <div class="hud-item hud-item-chica">
+          <span class="hud-etiqueta">Congestionados</span>
+          <span class="hud-valor" id="hud-congestion">0</span>
+        </div>
+      </div>
+
+      <div id="panel-segu" class="oculto">
+        <span id="segu-estado">👷 SEGU</span>
+        <span id="segu-mensaje"></span>
+      </div>
+    </main>
+  </div>
+
+  <!-- El parámetro ?v= evita que el navegador use una versión vieja en caché. -->
+  <script src="config.js?v=0.6.0"></script>
+  <script type="module" src="app.js?v=0.6.0"></script>
+</body>
+</html>
